@@ -2,7 +2,7 @@
 set -e
 
 usage() {
-  echo "Usage: $0 [-h] <full-package-name>"
+  echo "Usage: $0 [-fhn] <full-package-name>"
   exit 1
 }
 
@@ -22,8 +22,16 @@ fi
 
 while :; do
   case $1 in
+    -f|--force)
+      USE_FORCE=1
+      shift
+      ;;
     -h|--help)
       usage
+      ;;
+    -n|--non-interactive)
+      NON_INTERACTIVE=1
+      shift
       ;;
     -*)
       unknown_flag
@@ -75,6 +83,23 @@ FILES="
 ./pkg/foo/controller.go
 ./go.mod
 "
+
+confirm_deletion() {
+  [ ! -z ${NON_INTERACTIVE} ] && return 1
+  read -p "Overwrite existing directory at $APP? [y/N] " confirmation
+  case $confirmation in
+    [yY][eE][sS]|[yY])
+      return 0
+      ;;
+    *)
+      return 1
+  esac
+}
+
+if [ -d "$APP" ] && [ -z ${USE_FORCE} ] && ! confirm_deletion; then
+  echo "Failed to delete $APP"
+  exit 1
+fi
 
 rm -rf $APP
 mkdir -p $APP
