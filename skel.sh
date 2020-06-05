@@ -1,21 +1,51 @@
 #!/bin/bash
 set -e
 
-if [ "$#" != 1 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
-    echo Usage: $0 NEW-APP-PACKAGE
-    exit 1
+usage() {
+  echo "Usage: $0 [-h] <full-package-name>"
+  exit 1
+}
+
+improper_pkg_name() {
+  echo "Use full package name like github.com/rancher/widget"
+  usage
+}
+
+unknown_flag() {
+  echo "Unknown flag provided"
+  usage
+}
+
+if [ $# -eq 0 ]; then
+  usage
 fi
 
-if ! echo $1 | grep -q /; then
-    echo "use full package name like github.com/rancher/widget"
-    exit 1
-fi
+while :; do
+  case $1 in
+    -h|--help)
+      usage
+      ;;
+    -*)
+      unknown_flag
+      ;;
+    */*)
+      # Check if more than one package was provided
+      [ ! -z $PKG ] && usage
+      PKG=$1
+      shift
+      ;;
+    *)
+      # Check if something unexpected was provided
+      [ ! -z $1 ] && improper_pkg_name
+      # Check if package name has been parsed
+      [ -z $PKG ] && improper_pkg_name
+      break
+  esac
+done
 
 BASE=$(dirname $0)
-
-PKG=$1
-APP=$(basename $1)
-REPO=$(basename $(dirname $1))
+APP=$(basename $PKG)
+REPO=$(basename $(dirname $PKG))
 IMAGE=$REPO/$APP
 FILES="
 ./Dockerfile.dapper
